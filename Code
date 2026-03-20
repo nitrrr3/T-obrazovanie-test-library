@@ -1,0 +1,186 @@
+import sqlite3
+connection = sqlite3.connect('lib.db')
+cursor = connection.cursor()
+cursor.execute('''
+CREATE TABLE IF NOT EXISTS Books (
+id INTEGER PRIMARY KEY,
+title TEXT,
+author TEXT,
+genre TEXT,
+year_of_publication INTEGER,
+description TEXT,
+favorites BULL,
+read BULL
+)
+''')
+connection.commit()
+connection.close()
+
+def write_book(book):
+    connection = sqlite3.connect('lib.db')
+    cursor = connection.cursor()
+    cursor.execute('INSERT INTO Books (title,author,genre,year_of_publication,description,favorites,read) VALUES (?, ?, ?, ?, ?, ?, ?)', (book.title, book.author, book.genre, book.year_of_publication, book.description, book.favorites, book.read))
+    connection.commit()
+    connection.close()
+def update_book(id,book):
+    connection = sqlite3.connect('lib.db')
+    cursor = connection.cursor()
+    cursor.execute('UPDATE Books SET title = ?,author = ?,genre = ?,year_of_publication = ?,description = ?,favorites = ?,read = ? id = ?', (book.title, book.author, book.genre, book.year_of_publication, book.description, book.favorites, book.read,id))
+    connection.commit()
+    connection.close()
+def delete_book(id):
+    connection = sqlite3.connect('lib.db')
+    cursor = connection.cursor()
+    cursor.execute('DELETE FROM Books WHERE id = ?',(id,))
+    connection.commit()
+    connection.close()
+def read_lib(Library):
+    connection = sqlite3.connect('lib.db')
+    cursor = connection.cursor()
+    cursor.execute("SELECT COUNT(*) FROM Books")
+    count = cursor.fetchone()[0]
+    books = []
+    for i in range(count):
+        cursor.execute('SELECT title, author, genre, year_of_publication, description, favorites, read FROM Books WHERE id = ?', (i+1,))
+        sql_book = cursor.fetchall()
+        sql_book = sql_book[0]
+        Book(sql_book[0],sql_book[1],sql_book[2],sql_book[3],sql_book[4],sql_book[5],sql_book[6],Library)
+    connection.commit()
+    connection.close()
+class Library:
+    def __init__(self):
+        self.book_lib = []
+        read_lib(self)
+        self.dict_str_parameters = ["название", "автор", "жанр", "описание"]
+        self.dict_bull_parameters = ["избранное", "прочитано"]
+        self.dict_int_parameters = ["год публикации"]
+
+    def append(self, book):
+        self.book_lib.append(book)
+
+    def add_book(self):
+        print("""Вы решили добавить новую книгу в библиотеку, отлично!
+Если хотите оставить поле незаполненным: нажмите Enter.""")
+        title = input("Введите название книги: ")
+        author = input("Введите автора книги: ")
+        genre = input("Введите жанр книги: ")
+        year_of_publication = ""
+        while type(year_of_publication) != int:
+            try:
+                year_of_publication = int(input("Введите год публикации книги (если книга выпущена до нашей эры добавьте перед годом выпуска -): "))
+            except:
+                print("Год выпуска должен содержать только цифры, без пробелов и иных символов(кроме -)")
+        description = input("Добавьте краткое описание книги: ")
+        favorites = True if '1' in input("Если хотите добавить книгу в избранные, нажмите 1; если нет: нажмите 0: ") else False
+        read = True if '1' in input("Если хотите отметить книгу как прочитанную, нажмите 1; если нет: нажмите 0: ") else False
+        new_book = Book(title, author, genre, year_of_publication, description, favorites, read, self)
+        print("Отлично! Книга уже добавлена в библиотеку.")
+        write_book(new_book)
+        lib = input("Желаете ли вы открыть библиотеку? Если да: нажмите 1; если нет: нажмите 0: ")
+        if '1' in lib:
+            self.lib_view()
+
+    def lib_view(self):
+        num = 0
+        for i in self.book_lib:
+            num += 1
+            print(num, ". ", self.book_lib[num - 1].book_view(), sep='')
+
+
+    def change_book(self):
+        self.lib_view()
+        book_index = input("Введите номер книги, которую хотите изменить: ")
+        flag = True
+        while flag:
+            parameter = input("""Какой параметр вы желаете изменить у книги? напишите название одного параметра из списка:
+название
+автор
+жанр
+описание
+избранное
+прочитано
+год публикации
+: """)
+            new_parameter = input("""Введите новое значение параметра(год цифрами без лишних символов кроме -;
+    Для избранное и прочитано отметьте 1 - если да, 0 если нет): """)
+            try:
+                if parameter in self.dict_str_parameters:
+                    self.book_lib[book_index-1].change_str_book(parameter, new_parameter,book_index)
+                    flag = False
+                elif parameter in self.dict_bull_parameters:
+                    self.book_lib[book_index-1].change_bull_book(parameter, new_parameter,book_index)
+                    flag = False
+                elif parameter in self.dict_int_parameters:
+                    self.book_lib[book_index-1].change_int_book(int(parameter), new_parameter,book_index)
+                    flag = False
+                else:
+                    print("Параметр введен неверно.")
+            except:
+                print("Скорее всего, был введен неверный формат нового значения параметра.")
+
+    def favorites_books(self):
+        print("Избранные книги:")
+        for i in self.book_lib:
+            if i.favorites == True:
+                i.book_view()
+
+    def read_books(self):
+        print("Прочитанные книги:")
+        for i in self.book_lib:
+            if i.read == True:
+                i.book_view()
+
+class Book:
+    def __init__(self, title:str, author:str, genre:str, year_of_publication:int, description:str,favorites, read, Library):
+        self.title = title.replace(';', ',')
+        self.author = author.replace(';', ',')
+        self.genre = genre.replace(';', ',')
+        self.year_of_publication = year_of_publication
+        self.description = description.replace(';', ',')
+        self.favorites = favorites
+        self.read = read
+        self.Library = Library
+        self.Library.append(self)
+        self.dict_parameters = {"название": self.title, "автор": self.author, "жанр": self.genre,
+                          "год публикации": self.year_of_publication, "описание": self.description,
+                          "избранное": self.favorites, "прочитано": self.read}
+    def book_view(self):
+        return (f"""{'"'}{self.title}{'"'} автор: {self.author}, жанр: {self.genre}, год публикации: {self.year_of_publication}
+В избранном: {"да" if True == self.favorites else "нет"}, прочитана: {"да" if True == self.read else "нет"}. Описание:
+{self.description}""")
+
+    def change_str_book(self, parameter, new_parameter, id):
+        self.dict_parameters[parameter] = new_parameter
+        print("Параметр успешно изменён.")
+        update_book(id, self)
+
+    def change_bool_book(self, parameter, new_parameter, id):
+        self.dict_parameters[parameter] = True if 1 in new_parameter else False
+        print("Параметр успешно изменён.")
+        update_book(id, self)
+
+    def change_int_book(self, parameter, new_parameter, id):
+        self.dict_parameters[parameter] = int(new_parameter)
+        print("Параметр успешно изменён.")
+        update_book(id, self)
+Library = Library()
+program_end = True
+print("Т Библиотека")
+while program_end:
+    command = input("""Выберите номер комманды:
+1. Показать библиотеку
+2. Добавить книгу
+3. Показать избранные книги
+4. Показать прочитанные книги
+5. Выключить программу
+:""")
+    if command == 1:
+        Library.lib_view()
+    if command == 2:
+        Library.add_book()
+    if command == 3:
+        Library.favorites_books()
+    if command == 4:
+        Library.read_books()
+    if command == 5:
+        program_end = False
