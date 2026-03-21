@@ -167,13 +167,13 @@ Library = Library()
 program_end = True
 print("Т Библиотека")
 while program_end:
-    command = input("""Выберите номер комманды:
+    command = int(input("""Выберите номер комманды:
 1. Показать библиотеку
 2. Добавить книгу
 3. Показать избранные книги
 4. Показать прочитанные книги
 5. Выключить программу
-:""")
+:"""))
     if command == 1:
         Library.lib_view()
     if command == 2:
